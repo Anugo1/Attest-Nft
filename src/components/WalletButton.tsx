@@ -14,6 +14,7 @@ export function WalletButton() {
         Loading...
       </Button>
     );
+    
   }
 
   if (!isPhantomInstalled) {
