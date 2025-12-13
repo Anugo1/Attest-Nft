@@ -6,6 +6,16 @@ import { Wallet, LogOut, Loader2 } from 'lucide-react';
 export function WalletButton() {
   const { connected, publicKey, connecting, connect, disconnect, isPhantomInstalled } = useWallet();
 
+  // Show loading state while checking for Phantom
+  if (isPhantomInstalled === null) {
+    return (
+      <Button disabled className="bg-primary/50 text-primary-foreground">
+        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+        Loading...
+      </Button>
+    );
+  }
+
   if (!isPhantomInstalled) {
     return (
       <Button

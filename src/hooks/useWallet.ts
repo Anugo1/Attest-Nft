@@ -10,14 +10,21 @@ export interface WalletState {
 }
 
 export function useWallet() {
-  const [state, setState] = useState<WalletState>({
+  const [state, setState] = useState<WalletState>(() => ({
     connected: false,
     publicKey: null,
     connecting: false,
     provider: null,
-  });
+  }));
+  const [phantomInstalled, setPhantomInstalled] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // Check phantom installation once
+    const installed = isPhantomInstalled();
+    setPhantomInstalled(installed);
+    
+    if (!installed) return;
+    
     const provider = getProvider();
     if (provider) {
       setState(prev => ({ ...prev, provider }));
@@ -113,7 +120,7 @@ export function useWallet() {
 
   return {
     ...state,
-    isPhantomInstalled: isPhantomInstalled(),
+    isPhantomInstalled: phantomInstalled,
     connect,
     disconnect,
     signMessage,

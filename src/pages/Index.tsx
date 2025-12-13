@@ -3,6 +3,7 @@ import { Navbar } from '@/components/Navbar';
 import { Button } from '@/components/ui/button';
 import { GlowCard } from '@/components/GlowCard';
 import { Hexagon, Zap, Shield, QrCode, Sparkles, ArrowRight, Calendar, Gift } from 'lucide-react';
+import heroImage from '@/assets/hero-cyberpunk.png';
 
 const Index = () => {
   const features = [
@@ -36,9 +37,22 @@ const Index = () => {
     <div className="min-h-screen">
       <Navbar />
       
-      {/* Hero Section */}
-      <section className="pt-32 pb-20 px-4">
-        <div className="container mx-auto text-center">
+      {/* Hero Section with Background Image */}
+      <section className="relative pt-32 pb-20 px-4 min-h-[90vh] flex items-center">
+        {/* Background Image */}
+        <div 
+          className="absolute inset-0 z-0"
+          style={{
+            backgroundImage: `url(${heroImage})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+          }}
+        >
+          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
+        </div>
+        
+        <div className="container mx-auto text-center relative z-10">
           <div className="inline-flex items-center gap-2 bg-primary/10 border border-primary/30 rounded-full px-4 py-2 mb-8">
             <Sparkles className="h-4 w-4 text-primary" />
             <span className="text-sm text-primary font-medium">Powered by Solana & Metaplex</span>
@@ -71,9 +85,6 @@ const Index = () => {
           </div>
         </div>
       </section>
-
-      {/* Animated Grid Background */}
-      <div className="absolute inset-0 cyber-grid opacity-30 pointer-events-none" />
 
       {/* Features Section */}
       <section className="py-20 px-4 relative">
