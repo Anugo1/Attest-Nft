@@ -24,5 +24,6 @@ dist-ssr
 *.sw?
 scripts
 *.md
+local-server
 !README.md
 !readme.md
