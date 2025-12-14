@@ -23,7 +23,7 @@ export function Navbar() {
                 <span className="text-xs font-bold text-primary-foreground">A</span>
               </div>
             </div>
-            <span className="text-xl font-bold text-gradient">AttendanceNFT</span>
+            <span className="text-xl font-bold text-gradient">Attest</span>
           </Link>
 
           <div className="hidden md:flex items-center gap-1">

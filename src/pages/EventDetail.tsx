@@ -5,7 +5,7 @@ import { GlowCard } from '@/components/GlowCard';
 import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { ClaimNFT } from '@/components/ClaimNFT';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-adapter';
 import { useWallet } from '@/hooks/useWallet';
 import { format } from 'date-fns';
 import { Loader2, Calendar, MapPin, Users, ArrowLeft, Copy, CheckCircle2 } from 'lucide-react';
@@ -40,21 +40,14 @@ const EventDetailPage = () => {
 
   const fetchEvent = async () => {
     try {
-      const { data: eventData, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', id)
-        .single();
+      const { data: eventData, error } = await api.getEventById(id!);
 
       if (error) throw error;
 
       setEvent(eventData);
 
       // Get claim count
-      const { count } = await supabase
-        .from('claims')
-        .select('*', { count: 'exact', head: true })
-        .eq('event_id', id);
+      const { count } = await api.getClaimCount(id!);
 
       setClaimCount(count || 0);
     } catch (error) {

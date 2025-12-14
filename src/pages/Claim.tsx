@@ -5,7 +5,7 @@ import { GlowCard } from '@/components/GlowCard';
 import { ClaimNFT } from '@/components/ClaimNFT';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-adapter';
 import { Loader2, Search, Gift } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -39,12 +39,7 @@ const ClaimPage = () => {
     setSearched(true);
     
     try {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('claim_code', codeToSearch.toUpperCase())
-        .eq('is_active', true)
-        .single();
+      const { data, error } = await api.getEventByCode(codeToSearch);
 
       if (error) {
         setEvent(null);
@@ -76,7 +71,7 @@ const ClaimPage = () => {
               <span className="text-gradient">Claim</span> Your NFT
             </h1>
             <p className="text-muted-foreground">
-              Enter your event claim code to receive your attendance NFT
+              Enter your event claim code to receive your Attest NFT
             </p>
           </div>
 

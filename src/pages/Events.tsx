@@ -4,7 +4,7 @@ import { Navbar } from '@/components/Navbar';
 import { EventCard } from '@/components/EventCard';
 import { GlowCard } from '@/components/GlowCard';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-adapter';
 import { Loader2, Plus, Calendar } from 'lucide-react';
 
 interface Event {
@@ -28,21 +28,14 @@ const EventsPage = () => {
 
   const fetchEvents = async () => {
     try {
-      const { data: eventsData, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('is_active', true)
-        .order('event_date', { ascending: false });
+      const { data: eventsData, error } = await api.getEvents();
 
       if (error) throw error;
 
       // Get claim counts for each event
       const eventsWithCounts = await Promise.all(
         (eventsData || []).map(async (event) => {
-          const { count } = await supabase
-            .from('claims')
-            .select('*', { count: 'exact', head: true })
-            .eq('event_id', event.id);
+          const { count } = await api.getClaimCount(event.id);
           return { ...event, claim_count: count || 0 };
         })
       );
@@ -67,7 +60,7 @@ const EventsPage = () => {
                 <span className="text-gradient">Active</span> Events
               </h1>
               <p className="text-muted-foreground">
-                Browse and participate in attendance NFT events
+                Browse and participate in Attest events
               </p>
             </div>
             
@@ -88,7 +81,7 @@ const EventsPage = () => {
               <Calendar className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
               <h3 className="text-xl font-bold mb-2">No Events Yet</h3>
               <p className="text-muted-foreground mb-6">
-                Be the first to create an attendance NFT event!
+                Be the first to create an Attest event!
               </p>
               <Link to="/events/create">
                 <Button className="bg-primary text-primary-foreground hover:bg-primary/90">

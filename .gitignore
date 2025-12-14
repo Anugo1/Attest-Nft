@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+scripts
+*.md
+!README.md
+!readme.md

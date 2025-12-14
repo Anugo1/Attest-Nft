@@ -8,7 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GlowCard } from './GlowCard';
 import { useWallet } from '@/hooks/useWallet';
-import { supabase } from '@/integrations/supabase/client';
+import { api } from '@/lib/api-adapter';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -59,20 +59,16 @@ export function CreateEventForm() {
     try {
       const claimCode = generateClaimCode();
       
-      const { data: event, error } = await supabase
-        .from('events')
-        .insert({
-          name: data.name,
-          description: data.description || null,
-          location: data.location || null,
-          event_date: new Date(data.eventDate).toISOString(),
-          organizer_wallet: publicKey,
-          max_claims: data.maxClaims || 1000,
-          claim_code: claimCode,
-          nft_image_url: data.nftImageUrl || null,
-        })
-        .select()
-        .single();
+      const { data: event, error } = await api.createEvent({
+        name: data.name,
+        description: data.description || null,
+        location: data.location || null,
+        event_date: new Date(data.eventDate).toISOString(),
+        organizer_wallet: publicKey,
+        max_claims: data.maxClaims || 1000,
+        claim_code: claimCode,
+        nft_image_url: data.nftImageUrl || null,
+      });
 
       if (error) throw error;
 

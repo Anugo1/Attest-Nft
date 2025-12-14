@@ -13,7 +13,7 @@ const CreateEventPage = () => {
               <span className="text-gradient">Create</span> Event
             </h1>
             <p className="text-muted-foreground">
-              Set up a new attendance NFT event for your participants
+              Set up a new Attest event for your participants
             </p>
           </div>
 

@@ -16,7 +16,7 @@ const Index = () => {
     {
       icon: Shield,
       title: 'On-Chain Proof',
-      description: 'Every attendance NFT is minted on Solana, providing immutable proof of participation.',
+      description: 'Every Attest NFT is minted on Solana, providing immutable proof of participation.',
       color: 'text-secondary',
     },
     {
@@ -28,7 +28,7 @@ const Index = () => {
     {
       icon: Sparkles,
       title: 'Beautiful NFTs',
-      description: 'Create stunning attendance NFTs with custom artwork and metadata.',
+      description: 'Create stunning Attest NFTs with custom artwork and metadata.',
       color: 'text-neon-green',
     },
   ];
@@ -61,7 +61,7 @@ const Index = () => {
           <h1 className="text-5xl md:text-7xl font-bold mb-6">
             <span className="text-gradient">On-Chain</span>
             <br />
-            <span className="text-foreground">Attendance NFTs</span>
+            <span className="text-foreground">Attest NFTs</span>
           </h1>
           
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
@@ -90,10 +90,10 @@ const Index = () => {
       <section className="py-20 px-4 relative">
         <div className="container mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-center mb-4">
-            <span className="text-gradient">Why Choose</span> AttendanceNFT
+            <span className="text-gradient">Why Choose</span> Attest
           </h2>
           <p className="text-muted-foreground text-center max-w-2xl mx-auto mb-16">
-            The most powerful and user-friendly platform for creating and distributing attendance NFTs.
+            The most powerful and user-friendly platform for creating and distributing Attest NFTs.
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
