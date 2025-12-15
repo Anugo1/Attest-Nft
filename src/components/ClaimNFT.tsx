@@ -3,7 +3,6 @@ import { Button } from '@/components/ui/button';
 import { GlowCard } from './GlowCard';
 import { useWallet } from '@/hooks/useWallet';
 import { supabase } from '@/integrations/supabase/client';
-import { localApi } from '@/lib/local-api';
 import { toast } from 'sonner';
 import { Loader2, Gift, CheckCircle2, XCircle } from 'lucide-react';
 
@@ -31,65 +30,43 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
 
     try {
       // Sign a message to verify wallet ownership
-      const message = `Claim Attest NFT for event: ${eventName}\nCode: ${claimCode}\nTimestamp: ${Date.now()}`;
+      const message = `Claim Attendance NFT for event: ${eventName}\nCode: ${claimCode}\nTimestamp: ${Date.now()}`;
       const signature = await signMessage(message);
 
       if (!signature) {
         throw new Error('Failed to sign message');
       }
 
-      // Use local API or Supabase based on config
-      if (localApi.isEnabled()) {
-        // LOCAL API MODE
-        console.log('Using local API for claim');
+      // Check existing claim state
+      const { data: existingClaim, error: existingClaimError } = await supabase
+        .from('claims')
+        .select('id,status,mint_address')
+        .eq('event_id', eventId)
+        .eq('wallet_address', publicKey)
+        .maybeSingle();
 
-        // Check if already claimed
-        const { claimed } = await localApi.checkClaim(eventId, publicKey);
-        if (claimed) {
-          setError('You have already claimed this NFT');
-          setClaiming(false);
-          return;
-        }
+      if (existingClaimError) throw existingClaimError;
 
-        // Create claim record
-        const claim = await localApi.createClaim({
-          event_id: eventId,
-          wallet_address: publicKey,
-          signature: signature,
-          status: 'pending',
-        });
-
-        // Call local mint endpoint
-        const mintResult = await localApi.mintNFT({
-          claimId: claim.id,
-          eventId,
-          walletAddress: publicKey,
-          signature,
-        });
-
-        console.log('Mint result:', mintResult);
+      // Only block if mint is already completed
+      if (existingClaim?.status === 'completed' && existingClaim?.mint_address) {
         setClaimed(true);
-        toast.success('NFT claimed successfully!');
-        if (mintResult.explorerUrl) {
-          toast.success(`View on Explorer: ${mintResult.explorerUrl}`);
-        }
+        toast.success('Attendance NFT already claimed.');
         onSuccess?.();
-      } else {
-        // SUPABASE MODE
-        // Check if already claimed
-        const { data: existingClaim } = await supabase
+        return;
+      }
+
+      let claimIdToUse: string;
+
+      if (existingClaim?.id) {
+        // Retry mint for pending/failed claim
+        claimIdToUse = existingClaim.id;
+        const { error: updateClaimError } = await supabase
           .from('claims')
-          .select('id')
-          .eq('event_id', eventId)
-          .eq('wallet_address', publicKey)
-          .single();
+          .update({ status: 'pending', signature })
+          .eq('id', claimIdToUse);
 
-        if (existingClaim) {
-          setError('You have already claimed this NFT');
-          setClaiming(false);
-          return;
-        }
-
+        if (updateClaimError) throw updateClaimError;
+      } else {
         // Create claim record
         const { data: claim, error: claimError } = await supabase
           .from('claims')
@@ -103,23 +80,25 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
           .single();
 
         if (claimError) throw claimError;
-
-        // Call edge function to mint NFT
-        const { data: mintResult, error: mintError } = await supabase.functions.invoke('mint-nft', {
-          body: {
-            claimId: claim.id,
-            eventId,
-            walletAddress: publicKey,
-            signature,
-          },
-        });
-
-        if (mintError) throw mintError;
-
-        setClaimed(true);
-        toast.success('NFT claimed successfully!');
-        onSuccess?.();
+        claimIdToUse = claim.id;
       }
+
+      // Call edge function to mint NFT
+      const { data: mintResult, error: mintError } = await supabase.functions.invoke('mint-nft', {
+        body: {
+          claimId: claimIdToUse,
+          eventId,
+          walletAddress: publicKey,
+          signature,
+        },
+      });
+
+      if (mintError) throw mintError;
+      if (!mintResult?.success) throw new Error(mintResult?.error || 'Mint failed');
+
+      setClaimed(true);
+      toast.success('Attendance NFT claimed successfully!');
+      onSuccess?.();
     } catch (error: any) {
       console.error('Failed to claim NFT:', error);
       setError(error.message || 'Failed to claim NFT');
@@ -164,8 +143,8 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
       <h3 className="text-2xl font-bold text-foreground mb-2">Claim Your NFT</h3>
       <p className="text-muted-foreground mb-6">
         {connected
-          ? 'Click below to claim your Attest NFT'
-          : 'Connect your wallet to claim your Attest NFT'}
+          ? 'Click below to claim your Attendance NFT'
+          : 'Connect your wallet to claim your Attendance NFT'}
       </p>
 
       <Button
@@ -181,7 +160,7 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
         ) : (
           <>
             <Gift className="mr-2 h-5 w-5" />
-            Claim NFT
+            Claim Attendance NFT
           </>
         )}
       </Button>

@@ -62,7 +62,7 @@ WITH CHECK (true);
 CREATE POLICY "Organizers can update their events" 
 ON public.events 
 FOR UPDATE 
-USING (true);
+USING (false);
 
 -- Public read access for claims
 CREATE POLICY "Anyone can view claims" 
@@ -80,7 +80,7 @@ WITH CHECK (true);
 CREATE POLICY "Claims can be updated" 
 ON public.claims 
 FOR UPDATE 
-USING (true);
+USING (false);
 
 -- Create indexes for better performance
 CREATE INDEX idx_events_claim_code ON public.events(claim_code);

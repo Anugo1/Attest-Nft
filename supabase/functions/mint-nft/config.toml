@@ -1,0 +1,2 @@
+# Allow unauthenticated requests (needed so browser OPTIONS preflight isn't rejected before it reaches your handler)
+verify_jwt = false

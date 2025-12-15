@@ -19,7 +19,6 @@ const eventSchema = z.object({
   location: z.string().max(200).optional(),
   eventDate: z.string().min(1, 'Event date is required'),
   maxClaims: z.number().min(1).max(10000).optional(),
-  nftImageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
 });
 
 type EventFormData = z.infer<typeof eventSchema>;
@@ -67,7 +66,6 @@ export function CreateEventForm() {
         organizer_wallet: publicKey,
         max_claims: data.maxClaims || 1000,
         claim_code: claimCode,
-        nft_image_url: data.nftImageUrl || null,
       });
 
       if (error) throw error;
@@ -157,16 +155,6 @@ export function CreateEventForm() {
               placeholder="100"
               className="bg-input border-border"
               {...register('maxClaims', { valueAsNumber: true })}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="nftImageUrl">NFT Image URL</Label>
-            <Input
-              id="nftImageUrl"
-              placeholder="https://..."
-              className="bg-input border-border"
-              {...register('nftImageUrl')}
             />
           </div>
         </div>

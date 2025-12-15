@@ -111,7 +111,12 @@ export function useWallet() {
     try {
       const encodedMessage = new TextEncoder().encode(message);
       const { signature } = await provider.signMessage(encodedMessage);
-      return Buffer.from(signature).toString('base64');
+      const bytes = signature instanceof Uint8Array ? signature : new Uint8Array(signature);
+      let binary = '';
+      for (let i = 0; i < bytes.length; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      return btoa(binary);
     } catch (error) {
       console.error('Failed to sign message:', error);
       return null;
