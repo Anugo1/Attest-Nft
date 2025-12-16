@@ -28,3 +28,4 @@ local-server
 !README.md
 !readme.md
 *.lockb
+*.env
