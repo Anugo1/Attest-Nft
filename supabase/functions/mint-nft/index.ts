@@ -3,33 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode as base58Decode } from "https://deno.land/std@0.168.0/encoding/base58.ts";
 
-import {
-  Connection,
-  Keypair,
-  PublicKey,
-  Transaction,
-  SystemProgram,
-  clusterApiUrl,
-  sendAndConfirmTransaction,
-} from "npm:@solana/web3.js@1.87.6";
-
-import {
-  createMint,
-  getOrCreateAssociatedTokenAccount,
-  mintTo,
-  TOKEN_PROGRAM_ID,
-  createSetAuthorityInstruction,
-  AuthorityType,
-} from "npm:@solana/spl-token@0.3.8";
-
-import {
-  createCreateMetadataAccountV3Instruction,
-  createCreateMasterEditionV3Instruction,
-  PROGRAM_ID as TOKEN_METADATA_PROGRAM_ID,
-} from "npm:@metaplex-foundation/mpl-token-metadata@3.2.1";
-
-// NOTE: Solana deps (web3.js, spl-token, metaplex) are intentionally lazy-loaded inside the POST handler.
-// This keeps CORS preflight (OPTIONS) fast and avoids worker startup failures due to heavy imports.
+// NOTE: Solana deps are lazy-loaded inside the POST handler to keep OPTIONS fast
 
 function escapeXml(value: string): string {
   return value
@@ -121,6 +95,31 @@ serve(async (req) => {
   let claimId: string | null = null;
 
   try {
+    // Lazy-load Solana dependencies (only for POST, not OPTIONS)
+    const {
+      Connection,
+      Keypair,
+      PublicKey,
+      Transaction,
+      SystemProgram,
+      clusterApiUrl,
+      sendAndConfirmTransaction,
+    } = await import("npm:@solana/web3.js@1.98.4");
+
+    const {
+      createMint,
+      getOrCreateAssociatedTokenAccount,
+      mintTo,
+      TOKEN_PROGRAM_ID,
+      createSetAuthorityInstruction,
+      AuthorityType,
+    } = await import("npm:@solana/spl-token@0.4.8");
+
+    const metaplexModule = await import("npm:@metaplex-foundation/mpl-token-metadata@3.2.1");
+    const createCreateMetadataAccountV3Instruction = metaplexModule.createCreateMetadataAccountV3Instruction;
+    const createCreateMasterEditionV3Instruction = metaplexModule.createCreateMasterEditionV3Instruction;
+    const TOKEN_METADATA_PROGRAM_ID = metaplexModule.PROGRAM_ID;
+
     const body = await req.json();
     claimId = body?.claimId ?? null;
     const { eventId, walletAddress, signature } = body;
@@ -306,9 +305,10 @@ serve(async (req) => {
     console.log('Minted 1 token to recipient');
 
     // Step 4: Create Metadata Account using Metaplex SDK
+    const textEncoder = new TextEncoder();
     const [metadataPda] = PublicKey.findProgramAddressSync(
       [
-        Buffer.from('metadata'),
+        textEncoder.encode('metadata'),
         TOKEN_METADATA_PROGRAM_ID.toBuffer(),
         mint.toBuffer(),
       ],
@@ -317,10 +317,10 @@ serve(async (req) => {
 
     const [masterEditionPda] = PublicKey.findProgramAddressSync(
       [
-        Buffer.from('metadata'),
+        textEncoder.encode('metadata'),
         TOKEN_METADATA_PROGRAM_ID.toBuffer(),
         mint.toBuffer(),
-        Buffer.from('edition'),
+        textEncoder.encode('edition'),
       ],
       TOKEN_METADATA_PROGRAM_ID
     );

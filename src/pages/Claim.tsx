@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Navbar } from '@/components/Navbar';
 import { GlowCard } from '@/components/GlowCard';
 import { ClaimNFT } from '@/components/ClaimNFT';
+import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api-adapter';
@@ -137,6 +138,12 @@ const ClaimPage = () => {
                   </div>
                 </div>
               </GlowCard>
+
+              <QRCodeDisplay
+                data={`${window.location.origin}/claim/${event.claim_code}`}
+                title="Share This QR Code"
+                size={200}
+              />
 
               <ClaimNFT
                 eventId={event.id}

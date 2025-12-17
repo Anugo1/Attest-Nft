@@ -143,7 +143,12 @@ const EventDetailPage = () => {
                   
                   <div className="flex items-center gap-3 text-foreground">
                     <Users className="h-5 w-5 text-secondary" />
-                    <span>{claimCount} / {event.max_claims || '∞'} claimed</span>
+                    <span>
+                      {claimCount} / {event.max_claims || '∞'} claimed
+                      {event.max_claims && claimCount >= event.max_claims && (
+                        <span className="ml-2 text-xs text-destructive font-semibold">(FULL)</span>
+                      )}
+                    </span>
                   </div>
                 </div>
 
@@ -179,26 +184,25 @@ const EventDetailPage = () => {
 
             {/* QR Code & Claim */}
             <div className="space-y-6">
-              {isOrganizer ? (
-                <QRCodeDisplay
-                  data={`${window.location.origin}/claim/${event.claim_code}`}
-                  title="Scan to Claim"
-                />
-              ) : (
-                <ClaimNFT
-                  eventId={event.id}
-                  eventName={event.name}
-                  claimCode={event.claim_code}
-                  onSuccess={fetchEvent}
-                />
-              )}
+              <QRCodeDisplay
+                data={`${window.location.origin}/claim/${event.claim_code}`}
+                title="Scan to Claim NFT"
+              />
 
               {!isOrganizer && (
-                <GlowCard glowColor="cyan" className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Connect your Phantom wallet and sign to verify your attendance
-                  </p>
-                </GlowCard>
+                <>
+                  <ClaimNFT
+                    eventId={event.id}
+                    eventName={event.name}
+                    claimCode={event.claim_code}
+                    onSuccess={fetchEvent}
+                  />
+                  <GlowCard glowColor="cyan" className="text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Connect your Phantom wallet and sign to verify your attendance
+                    </p>
+                  </GlowCard>
+                </>
               )}
             </div>
           </div>
