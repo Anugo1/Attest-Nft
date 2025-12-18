@@ -2,6 +2,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import crypto from 'crypto';
 import sharp from 'sharp';
+import { pinFileToIpfs, pinJsonToIpfs, toIpfsUri } from './ipfs.js';
 
 const safeFilename = (value) => value.replace(/[^a-z0-9-_]/gi, '_');
 
@@ -123,31 +124,11 @@ export async function generateEventNftAssets({
   event,
   publicBaseUrl,
   backgroundPath,
+  storage = process.env.NFT_ASSET_STORAGE || 'local',
 }) {
   if (!event?.id) {
     throw new Error('generateEventNftAssets: event.id is required');
   }
-  if (!publicBaseUrl) {
-    throw new Error('generateEventNftAssets: publicBaseUrl is required');
-  }
-
-  const publicRoot = path.join(process.cwd(), 'public', 'nft');
-  const imagesDir = path.join(publicRoot, 'images');
-  const metadataDir = path.join(publicRoot, 'metadata');
-
-  await ensureDir(imagesDir);
-  await ensureDir(metadataDir);
-
-  const bgPath = backgroundPath || path.join(publicRoot, 'templates', 'background.png');
-
-  // Cache-buster so wallets refresh if you regenerate
-  const version = crypto.randomBytes(4).toString('hex');
-
-  const imageFilename = `${safeFilename(event.id)}-${version}.png`;
-  const metadataFilename = `${safeFilename(event.id)}-${version}.json`;
-
-  const imageOutPath = path.join(imagesDir, imageFilename);
-  const metadataOutPath = path.join(metadataDir, metadataFilename);
 
   const subtitleLines = [
     formatDate(event.event_date),
@@ -159,17 +140,27 @@ export async function generateEventNftAssets({
     subtitleLines,
   });
 
+  // Cache-buster so wallets refresh if you regenerate
+  const version = crypto.randomBytes(4).toString('hex');
+
+  const baseName = `${safeFilename(event.id)}-${version}`;
+  const imageFilename = `${baseName}.png`;
+  const metadataFilename = `${baseName}.json`;
+
+  // 1) Build image buffer (shared by local + IPFS)
+  const bgPath = backgroundPath || path.join(process.cwd(), 'public', 'nft', 'templates', 'background.png');
   const hasBackground = await fileExists(bgPath);
 
+  let imageBuffer;
   if (hasBackground) {
-    await sharp(bgPath)
+    imageBuffer = await sharp(bgPath)
       .resize(1024, 1024, { fit: 'cover' })
       .composite([{ input: svg, top: 0, left: 0 }])
       .png({ compressionLevel: 9 })
-      .toFile(imageOutPath);
+      .toBuffer();
   } else {
     const fallbackBg = buildFallbackBackgroundSvg();
-    await sharp({
+    imageBuffer = await sharp({
       create: {
         width: 1024,
         height: 1024,
@@ -182,8 +173,72 @@ export async function generateEventNftAssets({
         { input: svg, top: 0, left: 0 },
       ])
       .png({ compressionLevel: 9 })
-      .toFile(imageOutPath);
+      .toBuffer();
   }
+
+  // 2) Store via IPFS (Pinata) OR local disk
+  if (storage === 'ipfs') {
+    const pinnedImage = await pinFileToIpfs({
+      buffer: imageBuffer,
+      filename: imageFilename,
+      contentType: 'image/png',
+      pinataMetadata: { name: imageFilename },
+    });
+
+    const imageIpfsUri = toIpfsUri(pinnedImage.cid);
+
+    const metadata = {
+      name: `${event.name} - Attendance`,
+      symbol: 'ATTEND',
+      description: `Proof of attendance for ${event.name}${event.location ? ` at ${event.location}` : ''}${event.event_date ? ` on ${formatDate(event.event_date)}` : ''}.`,
+      image: imageIpfsUri,
+      attributes: [
+        { trait_type: 'Event', value: event.name },
+        ...(event.location ? [{ trait_type: 'Location', value: event.location }] : []),
+        ...(event.event_date ? [{ trait_type: 'Date', value: formatDate(event.event_date) }] : []),
+      ],
+      properties: {
+        category: 'image',
+        files: [{ uri: imageIpfsUri, type: 'image/png' }],
+      },
+    };
+
+    const pinnedMetadata = await pinJsonToIpfs({
+      json: metadata,
+      filename: metadataFilename,
+      pinataMetadata: { name: metadataFilename },
+    });
+
+    return {
+      // For the web UI (img src), store a gateway URL.
+      imageUrl: pinnedImage.gatewayUrl,
+      // For the on-chain metadata URI, prefer ipfs://CID (shorter + gateway-independent).
+      metadataUrl: pinnedMetadata.gatewayUrl,
+      metadataIpfsUri: pinnedMetadata.ipfsUri,
+      imageIpfsUri: imageIpfsUri,
+      imageFilename,
+      metadataFilename,
+      imageCid: pinnedImage.cid,
+      metadataCid: pinnedMetadata.cid,
+    };
+  }
+
+  // Default: local storage (previous behavior)
+  if (!publicBaseUrl) {
+    throw new Error('generateEventNftAssets: publicBaseUrl is required for local storage');
+  }
+
+  const publicRoot = path.join(process.cwd(), 'public', 'nft');
+  const imagesDir = path.join(publicRoot, 'images');
+  const metadataDir = path.join(publicRoot, 'metadata');
+
+  await ensureDir(imagesDir);
+  await ensureDir(metadataDir);
+
+  const imageOutPath = path.join(imagesDir, imageFilename);
+  const metadataOutPath = path.join(metadataDir, metadataFilename);
+
+  await fs.writeFile(imageOutPath, imageBuffer);
 
   const imageUrl = `${publicBaseUrl.replace(/\/+$/, '')}/nft/images/${imageFilename}`;
 

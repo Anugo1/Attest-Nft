@@ -119,18 +119,21 @@ router.post('/', async (req, res) => {
       const publicBaseUrl = (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`)
         .replace(/\/+$/, '');
       const backgroundPath = process.env.NFT_BACKGROUND_PATH; // optional absolute/relative path
+      const storage = process.env.NFT_ASSET_STORAGE || 'local';
 
-      const { imageUrl, metadataUrl } = await generateEventNftAssets({
+      const { imageUrl, metadataUrl, metadataIpfsUri } = await generateEventNftAssets({
         event: event.toJSON ? event.toJSON() : event,
         publicBaseUrl,
         backgroundPath,
+        storage,
       });
 
       event.nft_image_url = imageUrl;
-      event.nft_metadata_uri = metadataUrl;
+      // Prefer ipfs:// CID for on-chain metadata (shorter and avoids gateway dependence)
+      event.nft_metadata_uri = metadataIpfsUri || metadataUrl;
       await event.save();
 
-      console.log('Generated event NFT assets:', { imageUrl, metadataUrl });
+      console.log('Generated event NFT assets:', { imageUrl, metadataUrl, metadataIpfsUri });
     }
 
     console.log('Creating mint for event:', event.name);
@@ -189,6 +192,23 @@ router.post('/', async (req, res) => {
       TOKEN_METADATA_PROGRAM_ID
     );
 
+    // Metaplex token-metadata limits (bytes): name<=32, symbol<=10, uri<=200
+    const clampUtf8Bytes = (value, maxBytes) => {
+      const str = String(value ?? '');
+      if (Buffer.byteLength(str, 'utf8') <= maxBytes) return str;
+      let out = '';
+      for (const ch of str) {
+        const next = out + ch;
+        if (Buffer.byteLength(next, 'utf8') > maxBytes) break;
+        out = next;
+      }
+      return out;
+    };
+
+    const metadataName = clampUtf8Bytes(`${event.name} - Attendance`, 32);
+    const metadataSymbol = clampUtf8Bytes('ATTEND', 10);
+    const metadataUri = clampUtf8Bytes(event.nft_metadata_uri || '', 200);
+
     // Build metadata transaction
     const tx = new Transaction();
 
@@ -205,9 +225,9 @@ router.post('/', async (req, res) => {
         {
           createMetadataAccountArgsV3: {
             data: {
-              name: `${event.name} - Attendance`,
-              symbol: 'ATTEND',
-              uri: event.nft_metadata_uri || '',
+              name: metadataName,
+              symbol: metadataSymbol,
+              uri: metadataUri,
               sellerFeeBasisPoints: 0,
               creators: null,
               collection: null,
