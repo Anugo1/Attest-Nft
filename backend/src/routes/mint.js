@@ -15,13 +15,13 @@ import {
   AuthorityType,
 } from '@solana/spl-token';
 import bs58 from 'bs58';
-import mplTokenMetadataPkg from '@metaplex-foundation/mpl-token-metadata';
+import {
+  createCreateMetadataAccountV3Instruction,
+  createCreateMasterEditionV3Instruction,
+} from '@metaplex-foundation/mpl-token-metadata';
 import Event from '../models/Event.js';
 import Claim from '../models/Claim.js';
 
-const mplTokenMetadata = mplTokenMetadataPkg?.default ?? mplTokenMetadataPkg;
-const createCreateMetadataAccountV3Instruction = mplTokenMetadata.createCreateMetadataAccountV3Instruction;
-const createCreateMasterEditionV3Instruction = mplTokenMetadata.createCreateMasterEditionV3Instruction;
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
 const router = express.Router();
