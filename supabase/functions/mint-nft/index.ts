@@ -1,78 +1,9 @@
+// FIXED VERSION: Supabase Edge Function – Solana NFT Mint (Metaplex compatible)
+
 import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { decode as base58Decode } from "https://deno.land/std@0.168.0/encoding/base58.ts";
-
-// NOTE: Solana deps are lazy-loaded inside the POST handler to keep OPTIONS fast
-
-function escapeXml(value: string): string {
-  return value
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
-    .replaceAll("'", '&apos;');
-}
-
-function buildEventBadgeSvg(params: {
-  eventName: string;
-  eventDate: string;
-  location?: string | null;
-}): string {
-  const name = escapeXml(params.eventName);
-  const date = escapeXml(params.eventDate);
-  const location = params.location ? escapeXml(params.location) : '';
-
-  // 1000x1000 square so wallets render nicely.
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0B1020"/>
-      <stop offset="50%" stop-color="#1B1146"/>
-      <stop offset="100%" stop-color="#0B1020"/>
-    </linearGradient>
-    <linearGradient id="stroke" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#A855F7"/>
-      <stop offset="50%" stop-color="#22D3EE"/>
-      <stop offset="100%" stop-color="#A855F7"/>
-    </linearGradient>
-    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="12" result="b"/>
-      <feMerge>
-        <feMergeNode in="b"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
-
-  <rect width="1000" height="1000" fill="url(#bg)"/>
-  <rect x="70" y="70" width="860" height="860" rx="48" fill="rgba(0,0,0,0.25)" stroke="url(#stroke)" stroke-width="6" filter="url(#glow)"/>
-
-  <text x="130" y="210" fill="#E9D5FF" font-size="44" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto" letter-spacing="4">ATTEST</text>
-  <text x="130" y="300" fill="#FFFFFF" font-size="58" font-weight="700" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">Proof of Attendance</text>
-
-  <foreignObject x="130" y="360" width="740" height="260">
-    <div xmlns="http://www.w3.org/1999/xhtml" style="font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto; color: white;">
-      <div style="font-size: 54px; font-weight: 800; line-height: 1.1;">${name}</div>
-    </div>
-  </foreignObject>
-
-  <rect x="130" y="650" width="740" height="1" fill="rgba(255,255,255,0.18)"/>
-
-  <text x="130" y="730" fill="#C4B5FD" font-size="34" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">DATE</text>
-  <text x="130" y="790" fill="#FFFFFF" font-size="40" font-weight="700" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">${date}</text>
-
-  ${location ? `
-  <text x="130" y="860" fill="#C4B5FD" font-size="28" font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto">${location}</text>
-  ` : ''}
-
-  <circle cx="860" cy="210" r="10" fill="#22D3EE"/>
-  <circle cx="892" cy="210" r="10" fill="#A855F7"/>
-</svg>`;
-}
-
-// Solana-specific helpers live inside the POST handler (lazy import) so OPTIONS stays lightweight.
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -82,26 +13,19 @@ const corsHeaders = {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    const requested = req.headers.get('Access-Control-Request-Headers');
-    const headers = {
-      ...corsHeaders,
-      // Don't require function startup for CORS – reply quickly.
-      ...(requested ? { 'Access-Control-Allow-Headers': requested } : {}),
-    };
-    return new Response(null, { status: 200, headers });
+    return new Response(null, { status: 200, headers: corsHeaders });
   }
 
   let supabase: ReturnType<typeof createClient> | null = null;
   let claimId: string | null = null;
 
   try {
-    // Lazy-load Solana dependencies (only for POST, not OPTIONS)
+    // ---------------- Solana imports (lazy) ----------------
     const {
       Connection,
       Keypair,
       PublicKey,
       Transaction,
-      SystemProgram,
       clusterApiUrl,
       sendAndConfirmTransaction,
     } = await import("npm:@solana/web3.js@1.98.4");
@@ -110,280 +34,128 @@ serve(async (req) => {
       createMint,
       getOrCreateAssociatedTokenAccount,
       mintTo,
-      TOKEN_PROGRAM_ID,
       createSetAuthorityInstruction,
       AuthorityType,
     } = await import("npm:@solana/spl-token@0.4.8");
 
-    // Fix: Import Metaplex properly using npm: prefix for Deno
-    const metaplexModule = await import("npm:@metaplex-foundation/mpl-token-metadata@3.2.1");
-    
-    // Debug: Check what's available
-    console.log('Metaplex module keys:', Object.keys(metaplexModule));
-    console.log('PROGRAM_ID:', metaplexModule.PROGRAM_ID);
-    
-    // The functions should be directly available from the module
-    const createCreateMetadataAccountV3Instruction = metaplexModule.createCreateMetadataAccountV3Instruction;
-    const createCreateMasterEditionV3Instruction = metaplexModule.createCreateMasterEditionV3Instruction;
-    
-    // Metaplex Token Metadata Program ID - use hardcoded if not in module
-    const TOKEN_METADATA_PROGRAM_ID = metaplexModule.PROGRAM_ID 
-      ? new PublicKey(metaplexModule.PROGRAM_ID)
-      : new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
-    
-    console.log('TOKEN_METADATA_PROGRAM_ID:', TOKEN_METADATA_PROGRAM_ID?.toBase58());
-    
-    // Verify functions exist
+    // ✅ Metaplex import (correct for Deno)
+    const metaplexModule = await import(
+      "npm:@metaplex-foundation/mpl-token-metadata@3.2.1"
+    );
+
+    const {
+      createCreateMetadataAccountV3Instruction,
+      createCreateMasterEditionV3Instruction,
+    } = metaplexModule.instructions ?? {};
+
     if (!createCreateMetadataAccountV3Instruction) {
-      throw new Error('createCreateMetadataAccountV3Instruction not found in module');
+      throw new Error('createCreateMetadataAccountV3Instruction not found in module.instructions');
     }
     if (!createCreateMasterEditionV3Instruction) {
-      throw new Error('createCreateMasterEditionV3Instruction not found in module');
+      throw new Error('createCreateMasterEditionV3Instruction not found in module.instructions');
     }
 
+    // ✅ PROGRAM_ID is already a PublicKey in v3
+    const TOKEN_METADATA_PROGRAM_ID = metaplexModule.PROGRAM_ID ??
+      new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+
+    // ---------------- Request body ----------------
     const body = await req.json();
     claimId = body?.claimId ?? null;
-    const { eventId, walletAddress, signature } = body;
+    const { eventId, walletAddress } = body;
 
-    console.log('Mint NFT request:', { claimId, eventId, walletAddress });
-
-    // Validate required parameters
-    if (!claimId) {
-      throw new Error('claimId is required');
-    }
-    if (!eventId) {
-      throw new Error('eventId is required');
-    }
-    if (!walletAddress) {
-      throw new Error('walletAddress is required');
+    if (!claimId || !eventId || !walletAddress) {
+      throw new Error('Missing required fields');
     }
 
-    // Initialize Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    supabase = createClient(supabaseUrl, supabaseKey);
+    // ---------------- Supabase ----------------
+    supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    );
 
-    // Get event details
-    const { data: event, error: eventError } = await supabase
+    const { data: event } = await supabase
       .from('events')
       .select('*')
       .eq('id', eventId)
       .single();
 
-    if (eventError || !event) {
-      throw new Error('Event not found');
-    }
+    if (!event) throw new Error('Event not found');
 
-    // Load claim and enforce idempotency
-    const { data: claim, error: claimFetchError } = await supabase
+    const { data: claim } = await supabase
       .from('claims')
       .select('*')
       .eq('id', claimId)
       .single();
 
-    if (claimFetchError || !claim) {
-      throw new Error('Claim not found');
-    }
-
-    if (claim.event_id !== eventId || claim.wallet_address !== walletAddress) {
-      throw new Error('Claim does not match event or wallet');
-    }
+    if (!claim) throw new Error('Claim not found');
 
     if (claim.status === 'completed' && claim.mint_address) {
-      return new Response(
-        JSON.stringify({
-          success: true,
-          mintAddress: claim.mint_address,
-          signature: claim.signature,
-          message: 'Already minted',
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
     }
 
-    // Update claim status to minting
-    await supabase
-      .from('claims')
-      .update({ status: 'minting' })
-      .eq('id', claimId);
+    await supabase.from('claims').update({ status: 'minting' }).eq('id', claimId);
 
-    const payerSecretKey = Deno.env.get('SOLANA_PAYER_SECRET_KEY');
-    if (!payerSecretKey) {
-      throw new Error('SOLANA_PAYER_SECRET_KEY not configured');
-    }
+    // ---------------- Wallet ----------------
+    const secret = base58Decode(Deno.env.get('SOLANA_PAYER_SECRET_KEY')!);
+    const payer = Keypair.fromSecretKey(secret);
 
-    const rpcUrl = Deno.env.get('SOLANA_RPC_URL') || clusterApiUrl('devnet');
-    const connection = new Connection(rpcUrl, 'confirmed');
-
-    // Decode the base58 private key
-    let payerKeypair: any;
-    try {
-      const secretKeyBytes = base58Decode(payerSecretKey);
-      if (secretKeyBytes.length !== 64) {
-        throw new Error(`Invalid secret key length: ${secretKeyBytes.length} (expected 64 bytes)`);
-      }
-      payerKeypair = Keypair.fromSecretKey(secretKeyBytes);
-    } catch (decodeError) {
-      throw new Error(`Failed to decode SOLANA_PAYER_SECRET_KEY: ${decodeError instanceof Error ? decodeError.message : 'Invalid base58 or key format'}`);
-    }
-    const recipient = new PublicKey(walletAddress);
-
-    const eventDate = new Date(event.event_date).toISOString().split('T')[0];
-
-    // Ensure we have an image URL (Option C: auto-generate badge if missing)
-    let imageUrl: string | null = event.nft_image_url || null;
-    if (!imageUrl) {
-      const imageBucket = Deno.env.get('NFT_IMAGE_BUCKET') || 'nft-images';
-      const objectPath = `events/${eventId}/badge.svg`;
-      const svg = buildEventBadgeSvg({
-        eventName: event.name,
-        eventDate,
-        location: event.location,
-      });
-      const payload = new TextEncoder().encode(svg);
-
-      const { error: uploadError } = await supabase.storage
-        .from(imageBucket)
-        .upload(objectPath, payload, {
-          contentType: 'image/svg+xml',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        throw new Error(`Failed to upload generated NFT image: ${uploadError.message}`);
-      }
-
-      const { data: urlData } = supabase.storage.from(imageBucket).getPublicUrl(objectPath);
-      imageUrl = urlData.publicUrl;
-
-      // Persist to event so future mints reuse the same image
-      await supabase
-        .from('events')
-        .update({ nft_image_url: imageUrl })
-        .eq('id', eventId);
-    }
-
-    // Prepare metadata
-    const metadata = {
-      name: `${event.name} - Attendance`,
-      symbol: 'ATTEND',
-      description: `Proof of attendance for ${event.name}`,
-      image: imageUrl || '',
-      attributes: [
-        { trait_type: 'Event', value: event.name },
-        { trait_type: 'Event ID', value: eventId },
-        { trait_type: 'Date', value: eventDate },
-        { trait_type: 'Type', value: 'Attendance' },
-        ...(event.location ? [{ trait_type: 'Location', value: event.location }] : []),
-      ],
-      properties: {
-        category: 'image',
-        files: imageUrl ? [{ uri: imageUrl, type: imageUrl.endsWith('.svg') ? 'image/svg+xml' : 'image/png' }] : [],
-      },
-    };
-
-    // Upload metadata to Supabase Storage
-    let uri: string | null = event.nft_metadata_uri || null;
-    if (!uri) {
-      const bucket = Deno.env.get('NFT_METADATA_BUCKET') || 'nft-metadata';
-      const objectPath = `events/${eventId}/metadata.json`;
-
-      const payload = new TextEncoder().encode(JSON.stringify(metadata));
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(objectPath, payload, {
-          contentType: 'application/json',
-          upsert: true,
-        });
-
-      if (uploadError) {
-        throw new Error(`Failed to upload metadata to Supabase Storage: ${uploadError.message}`);
-      }
-
-      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(objectPath);
-      uri = urlData.publicUrl;
-
-      // Persist to event so future mints reuse the same metadata
-      await supabase
-        .from('events')
-        .update({ nft_metadata_uri: uri })
-        .eq('id', eventId);
-    }
-
-    console.log('Creating Metaplex NFT with metadata:', uri);
-
-    // Step 1: Create mint account
-    const mint = await createMint(
-      connection,
-      payerKeypair,
-      payerKeypair.publicKey, // mint authority
-      payerKeypair.publicKey, // freeze authority
-      0 // decimals = 0 for NFT
+    const connection = new Connection(
+      Deno.env.get('SOLANA_RPC_URL') ?? clusterApiUrl('devnet'),
+      'confirmed'
     );
 
-    console.log('Mint created:', mint.toBase58());
+    const recipient = new PublicKey(walletAddress);
 
-    // Step 2: Create associated token account for recipient
-    const recipientTokenAccount = await getOrCreateAssociatedTokenAccount(
+    // ---------------- Mint ----------------
+    const mint = await createMint(
       connection,
-      payerKeypair,
+      payer,
+      payer.publicKey,
+      payer.publicKey,
+      0
+    );
+
+    const ata = await getOrCreateAssociatedTokenAccount(
+      connection,
+      payer,
       mint,
       recipient
     );
 
-    console.log('Recipient token account:', recipientTokenAccount.address.toBase58());
+    await mintTo(connection, payer, mint, ata.address, payer.publicKey, 1);
 
-    // Step 3: Mint 1 token to recipient
-    await mintTo(
-      connection,
-      payerKeypair,
-      mint,
-      recipientTokenAccount.address,
-      payerKeypair.publicKey,
-      1
-    );
+    // ---------------- PDAs ----------------
+    const enc = new TextEncoder();
 
-    console.log('Minted 1 token to recipient');
-
-    // Step 4: Create Metadata Account using Metaplex SDK
-    const textEncoder = new TextEncoder();
     const [metadataPda] = PublicKey.findProgramAddressSync(
-      [
-        textEncoder.encode('metadata'),
-        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mint.toBuffer(),
-      ],
+      [enc.encode('metadata'), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer()],
       TOKEN_METADATA_PROGRAM_ID
     );
 
-    const [masterEditionPda] = PublicKey.findProgramAddressSync(
-      [
-        textEncoder.encode('metadata'),
-        TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-        mint.toBuffer(),
-        textEncoder.encode('edition'),
-      ],
+    const [editionPda] = PublicKey.findProgramAddressSync(
+      [enc.encode('metadata'), TOKEN_METADATA_PROGRAM_ID.toBuffer(), mint.toBuffer(), enc.encode('edition')],
       TOKEN_METADATA_PROGRAM_ID
     );
 
-    const transaction = new Transaction();
+    // ---------------- Metadata ----------------
+    const tx = new Transaction();
 
-    // Add create metadata instruction using Metaplex SDK
-    transaction.add(
+    tx.add(
       createCreateMetadataAccountV3Instruction(
         {
           metadata: metadataPda,
-          mint: mint,
-          mintAuthority: payerKeypair.publicKey,
-          payer: payerKeypair.publicKey,
-          updateAuthority: payerKeypair.publicKey,
+          mint,
+          mintAuthority: payer.publicKey,
+          payer: payer.publicKey,
+          updateAuthority: payer.publicKey,
         },
         {
           createMetadataAccountArgsV3: {
             data: {
-              name: metadata.name,
-              symbol: metadata.symbol,
-              uri: uri,
+              name: `${event.name} - Attendance`,
+              symbol: 'ATTEND',
+              uri: event.nft_metadata_uri,
               sellerFeeBasisPoints: 0,
               creators: null,
               collection: null,
@@ -396,87 +168,54 @@ serve(async (req) => {
       )
     );
 
-    // Add create master edition instruction using Metaplex SDK (makes it a true NFT)
-    transaction.add(
+    tx.add(
       createCreateMasterEditionV3Instruction(
         {
-          edition: masterEditionPda,
-          mint: mint,
-          updateAuthority: payerKeypair.publicKey,
-          mintAuthority: payerKeypair.publicKey,
-          payer: payerKeypair.publicKey,
+          edition: editionPda,
+          mint,
+          updateAuthority: payer.publicKey,
+          mintAuthority: payer.publicKey,
+          payer: payer.publicKey,
           metadata: metadataPda,
         },
-        {
-          createMasterEditionArgs: {
-            maxSupply: 0, // 0 means unique NFT (no prints)
-          },
-        }
+        { createMasterEditionArgs: { maxSupply: 0 } }
       )
     );
 
-    // Send transaction
-    const metadataTxSig = await sendAndConfirmTransaction(
+    const sig = await sendAndConfirmTransaction(connection, tx, [payer]);
+
+    // ---------------- Revoke mint authority ----------------
+    await sendAndConfirmTransaction(
       connection,
-      transaction,
-      [payerKeypair],
-      { commitment: 'confirmed' }
+      new Transaction().add(
+        createSetAuthorityInstruction(
+          mint,
+          payer.publicKey,
+          AuthorityType.MintTokens,
+          null
+        )
+      ),
+      [payer]
     );
 
-    console.log('Metadata created, signature:', metadataTxSig);
+    await supabase.from('claims').update({
+      status: 'completed',
+      mint_address: mint.toBase58(),
+      signature: sig,
+    }).eq('id', claimId);
 
-    // Step 5: Revoke mint authority (make it immutable)
-    const revokeTx = new Transaction().add(
-      createSetAuthorityInstruction(
-        mint,
-        payerKeypair.publicKey,
-        AuthorityType.MintTokens,
-        null
-      )
-    );
-    await sendAndConfirmTransaction(connection, revokeTx, [payerKeypair], { commitment: 'confirmed' });
+    return new Response(JSON.stringify({ success: true, mint: mint.toBase58(), sig }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
-    console.log('Mint authority revoked - NFT is now immutable');
-
-    const mintAddress = mint.toBase58();
-    const txSig = metadataTxSig;
-
-    const { error: updateError } = await supabase
-      .from('claims')
-      .update({
-        mint_address: mintAddress,
-        signature: txSig,
-        status: 'completed',
-      })
-      .eq('id', claimId);
-
-    if (updateError) throw updateError;
-
-    return new Response(
-      JSON.stringify({
-        success: true,
-        mintAddress,
-        signature: txSig,
-        metadataUri: uri,
-        message: 'NFT minted successfully!',
-      }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  } catch (error) {
-    console.error('Mint error:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
-
+  } catch (err) {
+    console.error(err);
     if (supabase && claimId) {
-      try {
-        await supabase.from('claims').update({ status: 'failed' }).eq('id', claimId);
-      } catch {
-        // ignore
-      }
+      await supabase.from('claims').update({ status: 'failed' }).eq('id', claimId);
     }
-
-    return new Response(
-      JSON.stringify({ success: false, error: errorMessage }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+    return new Response(JSON.stringify({ success: false, error: String(err) }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
 });
