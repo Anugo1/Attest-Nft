@@ -115,11 +115,16 @@ serve(async (req) => {
       AuthorityType,
     } = await import("npm:@solana/spl-token@0.4.8");
 
-    const metaplexModule = await import("npm:@metaplex-foundation/mpl-token-metadata@3.2.1");
-    const createCreateMetadataAccountV3Instruction = metaplexModule.createCreateMetadataAccountV3Instruction;
-    const createCreateMasterEditionV3Instruction = metaplexModule.createCreateMasterEditionV3Instruction;
-    // Metaplex Token Metadata Program ID (well-known constant address)
-    const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+    const {
+      createCreateMetadataAccountV3Instruction,
+      createCreateMasterEditionV3Instruction,
+      PROGRAM_ID: MPL_TOKEN_METADATA_PROGRAM_ID,
+    } = await import("https://esm.sh/@metaplex-foundation/mpl-token-metadata@3.2.1");
+    
+    // Metaplex Token Metadata Program ID (with hardcoded fallback)
+    const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
+      MPL_TOKEN_METADATA_PROGRAM_ID || 'metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s'
+    );
 
     const body = await req.json();
     claimId = body?.claimId ?? null;
