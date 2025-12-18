@@ -139,17 +139,24 @@ const ClaimPage = () => {
                 </div>
               </GlowCard>
 
-              <QRCodeDisplay
-                data={`${window.location.origin}/claim/${event.claim_code}`}
-                title="Share This QR Code"
-                size={200}
-              />
+              {/* On desktop, show QR + Mint side-by-side for symmetric alignment */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
+                <div className="w-full max-w-md mx-auto md:mx-0 md:justify-self-end">
+                  <QRCodeDisplay
+                    data={`${window.location.origin}/claim/${event.claim_code}`}
+                    title="Share This QR Code"
+                    size={200}
+                  />
+                </div>
 
-              <ClaimNFT
-                eventId={event.id}
-                eventName={event.name}
-                claimCode={event.claim_code}
-              />
+                <div className="w-full max-w-md mx-auto md:mx-0 md:justify-self-start">
+                  <ClaimNFT
+                    eventId={event.id}
+                    eventName={event.name}
+                    claimCode={event.claim_code}
+                  />
+                </div>
+              </div>
 
               <div className="text-center">
                 <Button

@@ -76,7 +76,7 @@ const Index = () => {
                 Create Event
               </Button>
             </Link>
-            <Link to="/claim">
+            <Link to="/events">
               <Button size="lg" variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 px-8 py-6 text-lg">
                 <Gift className="mr-2 h-5 w-5" />
                 Claim NFT
