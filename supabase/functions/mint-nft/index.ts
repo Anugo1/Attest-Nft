@@ -118,12 +118,28 @@ serve(async (req) => {
     // Fix: Import Metaplex properly using npm: prefix for Deno
     const metaplexModule = await import("npm:@metaplex-foundation/mpl-token-metadata@3.2.1");
     
+    // Debug: Check what's available
+    console.log('Metaplex module keys:', Object.keys(metaplexModule));
+    console.log('PROGRAM_ID:', metaplexModule.PROGRAM_ID);
+    
     // The functions should be directly available from the module
-    const { 
-      createCreateMetadataAccountV3Instruction,
-      createCreateMasterEditionV3Instruction,
-      PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID
-    } = metaplexModule;
+    const createCreateMetadataAccountV3Instruction = metaplexModule.createCreateMetadataAccountV3Instruction;
+    const createCreateMasterEditionV3Instruction = metaplexModule.createCreateMasterEditionV3Instruction;
+    
+    // Metaplex Token Metadata Program ID - use hardcoded if not in module
+    const TOKEN_METADATA_PROGRAM_ID = metaplexModule.PROGRAM_ID 
+      ? new PublicKey(metaplexModule.PROGRAM_ID)
+      : new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+    
+    console.log('TOKEN_METADATA_PROGRAM_ID:', TOKEN_METADATA_PROGRAM_ID?.toBase58());
+    
+    // Verify functions exist
+    if (!createCreateMetadataAccountV3Instruction) {
+      throw new Error('createCreateMetadataAccountV3Instruction not found in module');
+    }
+    if (!createCreateMasterEditionV3Instruction) {
+      throw new Error('createCreateMasterEditionV3Instruction not found in module');
+    }
 
     const body = await req.json();
     claimId = body?.claimId ?? null;
