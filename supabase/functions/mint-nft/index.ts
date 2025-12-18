@@ -115,13 +115,15 @@ serve(async (req) => {
       AuthorityType,
     } = await import("npm:@solana/spl-token@0.4.8");
 
-    // Import Metaplex using skypack for better Deno compatibility
-    const metaplexModule = await import("https://cdn.skypack.dev/@metaplex-foundation/mpl-token-metadata@2.13.0");
-    const createCreateMetadataAccountV3Instruction = metaplexModule.createCreateMetadataAccountV3Instruction;
-    const createCreateMasterEditionV3Instruction = metaplexModule.createCreateMasterEditionV3Instruction;
+    // Fix: Import Metaplex properly using npm: prefix for Deno
+    const metaplexModule = await import("npm:@metaplex-foundation/mpl-token-metadata@3.2.1");
     
-    // Metaplex Token Metadata Program ID (well-known constant)
-    const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
+    // The functions should be directly available from the module
+    const { 
+      createCreateMetadataAccountV3Instruction,
+      createCreateMasterEditionV3Instruction,
+      PROGRAM_ID: TOKEN_METADATA_PROGRAM_ID
+    } = metaplexModule;
 
     const body = await req.json();
     claimId = body?.claimId ?? null;
