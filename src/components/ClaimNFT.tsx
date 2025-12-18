@@ -4,8 +4,7 @@ import { GlowCard } from './GlowCard';
 import { useWallet } from '@/hooks/useWallet';
 import { toast } from 'sonner';
 import { Loader2, Gift, CheckCircle2, XCircle } from 'lucide-react';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+import { api } from '@/lib/api-adapter';
 
 interface ClaimNFTProps {
   eventId: string;
@@ -39,8 +38,7 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
       }
 
       // Check existing claim state
-      const checkResponse = await fetch(`${API_BASE_URL}/claims/check/${eventId}/${publicKey}`);
-      const existingClaim = checkResponse.ok ? await checkResponse.json() : null;
+      const { data: existingClaim } = await api.checkExistingClaim(eventId, publicKey);
 
       // Only block if mint is already completed
       if (existingClaim?.status === 'completed' && existingClaim?.mint_address) {
@@ -50,57 +48,30 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
         return;
       }
 
-      let claimIdToUse: string;
-
-      if (existingClaim?.id) {
-        // Use existing claim ID
-        claimIdToUse = existingClaim.id;
-      } else {
-        // Create new claim record
-        const createClaimResponse = await fetch(`${API_BASE_URL}/claims`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
+      const claimIdToUse = existingClaim?.id
+        ? existingClaim.id
+        : (await api.createClaim({
             event_id: eventId,
             wallet_address: publicKey,
-            signature: signature,
+            signature,
             status: 'pending',
-          }),
-        });
-
-        if (!createClaimResponse.ok) {
-          throw new Error('Failed to create claim');
-        }
-
-        const claim = await createClaimResponse.json();
-        claimIdToUse = claim.id;
-      }
+          })).data.id;
 
       // Call backend to mint NFT
-      const mintResponse = await fetch(`${API_BASE_URL}/mint`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          claimId: claimIdToUse,
-          eventId,
-          walletAddress: publicKey,
-          signature,
-        }),
-      });
+      const { data: mintResult } = await api.mintNFT(claimIdToUse, eventId, publicKey, signature);
 
-      const mintResult = await mintResponse.json();
-
-      if (!mintResponse.ok || !mintResult?.success) {
-        throw new Error(mintResult?.error || 'Mint failed');
+      if (!mintResult?.success) {
+        throw new Error('Mint failed');
       }
 
       setClaimed(true);
       toast.success('Attendance NFT claimed successfully!');
       onSuccess?.();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to claim NFT:', error);
-      setError(error.message || 'Failed to claim NFT');
-      toast.error(error.message || 'Failed to claim NFT');
+      const message = error instanceof Error ? error.message : 'Failed to claim NFT';
+      setError(message);
+      toast.error(message);
     } finally {
       setClaiming(false);
     }

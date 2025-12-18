@@ -10,13 +10,13 @@ export interface PhantomProvider {
   isPhantom?: boolean;
   publicKey: PublicKey | null;
   isConnected: boolean;
-  signTransaction: (transaction: any) => Promise<any>;
-  signAllTransactions: (transactions: any[]) => Promise<any[]>;
+  signTransaction: (transaction: unknown) => Promise<unknown>;
+  signAllTransactions: (transactions: unknown[]) => Promise<unknown[]>;
   signMessage: (message: Uint8Array) => Promise<{ signature: Uint8Array }>;
   connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: PublicKey }>;
   disconnect: () => Promise<void>;
-  on: (event: string, callback: (args: any) => void) => void;
-  off: (event: string, callback: (args: any) => void) => void;
+  on: (event: string, callback: (...args: unknown[]) => void) => void;
+  off: (event: string, callback: (...args: unknown[]) => void) => void;
 }
 
 declare global {

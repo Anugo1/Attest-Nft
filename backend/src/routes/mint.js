@@ -51,9 +51,24 @@ router.post('/', async (req, res) => {
     // Get claim
     const claim = await Claim.findById(claimId);
     if (!claim) {
-      return res.status(404).json({ 
-        success: false, 
-        error: 'Claim not found' 
+      return res.status(404).json({
+        success: false,
+        error: 'Claim not found',
+      });
+    }
+
+    // Validate claim belongs to event + wallet
+    if (claim.event_id?.toString?.() !== eventId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Claim does not belong to this event',
+      });
+    }
+
+    if (claim.wallet_address !== walletAddress) {
+      return res.status(400).json({
+        success: false,
+        error: 'Claim does not belong to this wallet',
       });
     }
 
@@ -64,6 +79,14 @@ router.post('/', async (req, res) => {
         mintAddress: claim.mint_address,
         signature: claim.signature,
         message: 'Already minted',
+      });
+    }
+
+    // Avoid double-mint while an in-flight mint is running
+    if (claim.status === 'minting') {
+      return res.status(409).json({
+        success: false,
+        error: 'Mint already in progress',
       });
     }
 

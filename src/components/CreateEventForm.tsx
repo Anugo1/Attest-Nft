@@ -72,9 +72,10 @@ export function CreateEventForm() {
 
       toast.success('Event created successfully!');
       navigate(`/events/${event.id}`);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Failed to create event:', error);
-      toast.error(error.message || 'Failed to create event');
+      const message = error instanceof Error ? error.message : 'Failed to create event';
+      toast.error(message);
     } finally {
       setSubmitting(false);
     }

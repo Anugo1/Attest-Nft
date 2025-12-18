@@ -3,14 +3,43 @@ import Claim from '../models/Claim.js';
 
 const router = express.Router();
 
-// Create new claim
+// Create new claim (idempotent per event_id + wallet_address)
 router.post('/', async (req, res) => {
   try {
-    const claim = new Claim(req.body);
+    const { event_id, wallet_address, signature, status } = req.body || {};
+
+    if (!event_id || !wallet_address) {
+      return res.status(400).json({ error: 'event_id and wallet_address are required' });
+    }
+
+    // If a claim already exists for this wallet/event, return it instead of erroring.
+    const existing = await Claim.findOne({ event_id, wallet_address });
+    if (existing) {
+      return res.status(200).json(existing);
+    }
+
+    const claim = new Claim({
+      event_id,
+      wallet_address,
+      signature,
+      status: status || 'pending',
+    });
+
     await claim.save();
     res.status(201).json(claim);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    // Handle unique index race (event_id + wallet_address)
+    if (error && typeof error === 'object' && error !== null && 'code' in error && error.code === 11000) {
+      try {
+        const { event_id, wallet_address } = req.body || {};
+        const existing = await Claim.findOne({ event_id, wallet_address });
+        if (existing) return res.status(200).json(existing);
+      } catch {
+        // fall through
+      }
+    }
+
+    res.status(400).json({ error: error?.message || 'Failed to create claim' });
   }
 });
 
