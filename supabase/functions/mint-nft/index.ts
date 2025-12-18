@@ -118,7 +118,7 @@ serve(async (req) => {
     const metaplexModule = await import("npm:@metaplex-foundation/mpl-token-metadata@3.2.1");
     const createCreateMetadataAccountV3Instruction = metaplexModule.createCreateMetadataAccountV3Instruction;
     const createCreateMasterEditionV3Instruction = metaplexModule.createCreateMasterEditionV3Instruction;
-    const TOKEN_METADATA_PROGRAM_ID = metaplexModule.PROGRAM_ID;
+    const TOKEN_METADATA_PROGRAM_ID = new PublicKey(metaplexModule.PROGRAM_ID);
 
     const body = await req.json();
     claimId = body?.claimId ?? null;
