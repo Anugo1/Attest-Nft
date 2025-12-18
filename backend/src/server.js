@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import path from 'path';
 import { connectDB } from './config/database.js';
 import eventsRouter from './routes/events.js';
 import claimsRouter from './routes/claims.js';
@@ -9,6 +10,9 @@ import mintRouter from './routes/mint.js';
 dotenv.config();
 
 const app = express();
+// Render (and many hosts) sit behind a proxy; trust it so req.protocol becomes https.
+app.set('trust proxy', 1);
+
 const PORT = process.env.PORT || 5000;
 
 // Connect to MongoDB
@@ -35,6 +39,9 @@ app.use(
   })
 );
 app.use(express.json());
+
+// Public static files (NFT images + metadata)
+app.use('/nft', express.static(path.join(process.cwd(), 'public', 'nft')));
 
 // Routes
 app.use('/api/events', eventsRouter);

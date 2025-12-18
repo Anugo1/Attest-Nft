@@ -23,6 +23,7 @@ import {
 } from '@metaplex-foundation/mpl-token-metadata';
 import Event from '../models/Event.js';
 import Claim from '../models/Claim.js';
+import { generateEventNftAssets } from '../lib/nft-assets.js';
 
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
@@ -111,6 +112,26 @@ router.post('/', async (req, res) => {
     const rpcUrl = process.env.SOLANA_RPC_URL || clusterApiUrl('devnet');
     const connection = new Connection(rpcUrl, 'confirmed');
     const recipient = new PublicKey(walletAddress);
+
+    // Ensure the event has a publicly reachable metadata URI (wallets fetch image from this JSON)
+    // Option B: generate an image (background + event inscription) + JSON metadata on-demand.
+    if (!event.nft_metadata_uri) {
+      const publicBaseUrl = (process.env.PUBLIC_BASE_URL || `${req.protocol}://${req.get('host')}`)
+        .replace(/\/+$/, '');
+      const backgroundPath = process.env.NFT_BACKGROUND_PATH; // optional absolute/relative path
+
+      const { imageUrl, metadataUrl } = await generateEventNftAssets({
+        event: event.toJSON ? event.toJSON() : event,
+        publicBaseUrl,
+        backgroundPath,
+      });
+
+      event.nft_image_url = imageUrl;
+      event.nft_metadata_uri = metadataUrl;
+      await event.save();
+
+      console.log('Generated event NFT assets:', { imageUrl, metadataUrl });
+    }
 
     console.log('Creating mint for event:', event.name);
 
