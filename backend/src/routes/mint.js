@@ -6,9 +6,11 @@ import {
   Transaction,
   clusterApiUrl,
   sendAndConfirmTransaction,
+  SendTransactionError,
 } from '@solana/web3.js';
 import {
   createMint,
+  getMint,
   getOrCreateAssociatedTokenAccount,
   mintTo,
   createSetAuthorityInstruction,
@@ -226,24 +228,49 @@ router.post('/', async (req, res) => {
 
     console.log('Metadata created:', metadataSig);
 
-    // Revoke mint authority (make immutable)
-    const revokeTx = new Transaction().add(
-      createSetAuthorityInstruction(
-        mint,
-        payer.publicKey,
-        AuthorityType.MintTokens,
-        null
-      )
-    );
+    // After master edition creation, the mint authority is often moved away from the payer
+    // (e.g. to the Master Edition PDA). Only try to revoke authority if payer is still the authority.
+    const mintInfo = await getMint(connection, mint, 'confirmed');
 
-    await sendAndConfirmTransaction(
-      connection,
-      revokeTx,
-      [payer],
-      { commitment: 'confirmed' }
-    );
+    const revokeIxs = [];
 
-    console.log('Mint authority revoked');
+    if (mintInfo.mintAuthority && mintInfo.mintAuthority.equals(payer.publicKey)) {
+      revokeIxs.push(
+        createSetAuthorityInstruction(
+          mint,
+          payer.publicKey,
+          AuthorityType.MintTokens,
+          null
+        )
+      );
+    } else {
+      console.log(
+        'Skipping MintTokens revoke; current mint authority is',
+        mintInfo.mintAuthority ? mintInfo.mintAuthority.toBase58() : '(null)'
+      );
+    }
+
+    if (mintInfo.freezeAuthority && mintInfo.freezeAuthority.equals(payer.publicKey)) {
+      revokeIxs.push(
+        createSetAuthorityInstruction(
+          mint,
+          payer.publicKey,
+          AuthorityType.FreezeAccount,
+          null
+        )
+      );
+    }
+
+    if (revokeIxs.length > 0) {
+      const revokeTx = new Transaction();
+      revokeTx.add(...revokeIxs);
+
+      await sendAndConfirmTransaction(connection, revokeTx, [payer], {
+        commitment: 'confirmed',
+      });
+
+      console.log('Mint authorities revoked:', revokeIxs.length);
+    }
 
     // Update claim with success
     claim.status = 'completed';
@@ -260,6 +287,17 @@ router.post('/', async (req, res) => {
 
   } catch (error) {
     console.error('Mint error:', error);
+
+    if (error instanceof SendTransactionError) {
+      try {
+        const logs = await error.getLogs();
+        if (logs?.length) {
+          console.error('On-chain logs (SendTransactionError):', logs);
+        }
+      } catch (logErr) {
+        console.error('Failed to fetch SendTransactionError logs:', logErr);
+      }
+    }
 
     // Update claim status to failed
     if (claimId) {
