@@ -118,13 +118,25 @@ serve(async (req) => {
     const metaplexModule = await import("npm:@metaplex-foundation/mpl-token-metadata@3.2.1");
     const createCreateMetadataAccountV3Instruction = metaplexModule.createCreateMetadataAccountV3Instruction;
     const createCreateMasterEditionV3Instruction = metaplexModule.createCreateMasterEditionV3Instruction;
-    const TOKEN_METADATA_PROGRAM_ID = new PublicKey(metaplexModule.PROGRAM_ID);
+    // Metaplex Token Metadata Program ID (well-known constant address)
+    const TOKEN_METADATA_PROGRAM_ID = new PublicKey('metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s');
 
     const body = await req.json();
     claimId = body?.claimId ?? null;
     const { eventId, walletAddress, signature } = body;
 
     console.log('Mint NFT request:', { claimId, eventId, walletAddress });
+
+    // Validate required parameters
+    if (!claimId) {
+      throw new Error('claimId is required');
+    }
+    if (!eventId) {
+      throw new Error('eventId is required');
+    }
+    if (!walletAddress) {
+      throw new Error('walletAddress is required');
+    }
 
     // Initialize Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
