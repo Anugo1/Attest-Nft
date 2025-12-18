@@ -1,0 +1,24 @@
+{
+  "name": "attest-backend",
+  "version": "1.0.0",
+  "description": "Node.js backend for Attest NFT minting",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@metaplex-foundation/mpl-token-metadata": "^3.2.1",
+    "@solana/spl-token": "^0.4.8",
+    "@solana/web3.js": "^1.98.4",
+    "bs58": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "mongoose": "^8.9.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.9"
+  }
+}
