@@ -184,7 +184,16 @@ serve(async (req) => {
     const connection = new Connection(rpcUrl, 'confirmed');
 
     // Decode the base58 private key
-    const payerKeypair = Keypair.fromSecretKey(base58Decode(payerSecretKey));
+    let payerKeypair: any;
+    try {
+      const secretKeyBytes = base58Decode(payerSecretKey);
+      if (secretKeyBytes.length !== 64) {
+        throw new Error(`Invalid secret key length: ${secretKeyBytes.length} (expected 64 bytes)`);
+      }
+      payerKeypair = Keypair.fromSecretKey(secretKeyBytes);
+    } catch (decodeError) {
+      throw new Error(`Failed to decode SOLANA_PAYER_SECRET_KEY: ${decodeError instanceof Error ? decodeError.message : 'Invalid base58 or key format'}`);
+    }
     const recipient = new PublicKey(walletAddress);
 
     const eventDate = new Date(event.event_date).toISOString().split('T')[0];

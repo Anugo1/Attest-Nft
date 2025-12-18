@@ -29,3 +29,6 @@ local-server
 !readme.md
 *.lockb
 *.env
+my-payer.json
+id.json
+*.keypair.json
