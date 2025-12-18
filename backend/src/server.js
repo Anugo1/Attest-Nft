@@ -15,17 +15,21 @@ const PORT = process.env.PORT || 5000;
 connectDB();
 
 // Middleware
-const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:8080')
+const normalizeOrigin = (value) => value.replace(/\/+$/, '');
+
+const allowedOrigins = (process.env.FRONTEND_URL || 'https://attest-nft.vercel.app')
   .split(',')
   .map((s) => s.trim())
-  .filter(Boolean);
+  .filter(Boolean)
+  .map(normalizeOrigin);
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
+      const normalized = normalizeOrigin(origin);
+      if (allowedOrigins.includes(normalized)) return callback(null, true);
+      return callback(new Error(`CORS blocked for origin: ${origin}. Allowed: ${allowedOrigins.join(', ')}`));
     },
     credentials: true,
   })
