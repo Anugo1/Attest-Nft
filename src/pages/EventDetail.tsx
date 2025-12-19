@@ -6,7 +6,7 @@ import { QRCodeDisplay } from '@/components/QRCodeDisplay';
 import { ClaimNFT } from '@/components/ClaimNFT';
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api-adapter';
-import { useWallet } from '@/hooks/useWallet';
+import { useMultiWallet } from '@/hooks/useMultiWallet';
 import { format } from 'date-fns';
 import { Loader2, Calendar, MapPin, Users, ArrowLeft, Copy, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -21,12 +21,12 @@ interface Event {
   nft_image_url: string | null;
   max_claims: number | null;
   claim_code: string;
-  is_active: boolean;
+  is_active?: boolean;
 }
 
 const EventDetailPage = () => {
   const { id } = useParams<{ id: string }>();
-  const { publicKey } = useWallet();
+  const { publicKey } = useMultiWallet();
   const [event, setEvent] = useState<Event | null>(null);
   const [claimCount, setClaimCount] = useState(0);
   const [loading, setLoading] = useState(true);

@@ -23,7 +23,11 @@ const formatDate = (dateValue) => {
   const d = dateValue instanceof Date ? dateValue : new Date(dateValue);
   if (Number.isNaN(d.getTime())) return '';
   // YYYY-MM-DD (keeps metadata compact and consistent)
-  return d.toISOString().slice(0, 10);
+  // Use local date to avoid timezone conversion issues
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
 };
 
 const buildSvgOverlay = ({ title, subtitleLines }) => {
@@ -43,26 +47,29 @@ const buildSvgOverlay = ({ title, subtitleLines }) => {
   <defs>
     <linearGradient id="fade" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#000" stop-opacity="0" />
-      <stop offset="70%" stop-color="#000" stop-opacity="0.35" />
-      <stop offset="100%" stop-color="#000" stop-opacity="0.65" />
+      <stop offset="65%" stop-color="#000" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#000" stop-opacity="0.75" />
     </linearGradient>
   </defs>
 
   <!-- bottom fade for readability -->
   <rect x="0" y="0" width="1024" height="1024" fill="url(#fade)" />
 
-  <!-- text container -->
-  <rect x="64" y="740" rx="28" ry="28" width="896" height="220" fill="#000" opacity="0.35" />
+  <!-- text container with more height -->
+  <rect x="48" y="680" rx="24" ry="24" width="928" height="296" fill="#000" opacity="0.45" />
 
-  <text x="96" y="820" font-family="Arial, Helvetica, sans-serif" font-size="56" font-weight="700" fill="#fff">
+  <!-- Title with word wrap support -->
+  <text x="80" y="760" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" fill="#fff" textLength="${Math.min(title.length * 30, 860)}" lengthAdjust="spacingAndGlyphs">
     ${esc(title)}
   </text>
 
-  <text x="96" y="890" font-family="Arial, Helvetica, sans-serif" font-size="34" font-weight="400" fill="#E5E7EB">
+  <!-- Subtitle with better spacing -->
+  <text x="80" y="830" font-family="Arial, Helvetica, sans-serif" font-size="32" font-weight="400" fill="#E5E7EB">
     ${esc(subtitle)}
   </text>
 
-  <text x="96" y="940" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="600" fill="#93C5FD">
+  <!-- Proof of Attendance badge -->
+  <text x="80" y="920" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600" fill="#93C5FD">
     Proof of Attendance
   </text>
 </svg>

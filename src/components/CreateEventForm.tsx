@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { GlowCard } from './GlowCard';
-import { useWallet } from '@/hooks/useWallet';
+import { useMultiWallet } from '@/hooks/useMultiWallet';
 import { api } from '@/lib/api-adapter';
 import { toast } from 'sonner';
 import { Loader2, Sparkles } from 'lucide-react';
@@ -24,7 +24,7 @@ const eventSchema = z.object({
 type EventFormData = z.infer<typeof eventSchema>;
 
 export function CreateEventForm() {
-  const { connected, publicKey } = useWallet();
+  const { connected, publicKey } = useMultiWallet();
   const [submitting, setSubmitting] = useState(false);
   const navigate = useNavigate();
 

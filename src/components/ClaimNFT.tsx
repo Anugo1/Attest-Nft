@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { GlowCard } from './GlowCard';
-import { useWallet } from '@/hooks/useWallet';
+import { useMultiWallet } from '@/hooks/useMultiWallet';
 import { toast } from 'sonner';
 import { Loader2, Gift, CheckCircle2, XCircle } from 'lucide-react';
 import { api } from '@/lib/api-adapter';
@@ -14,7 +14,7 @@ interface ClaimNFTProps {
 }
 
 export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTProps) {
-  const { connected, publicKey, signMessage } = useWallet();
+  const { connected, publicKey, signMessage } = useMultiWallet();
   const [claiming, setClaiming] = useState(false);
   const [claimed, setClaimed] = useState(false);
   const [error, setError] = useState<string | null>(null);

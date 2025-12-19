@@ -3,7 +3,7 @@ import { CreateEventForm } from '@/components/CreateEventForm';
 
 const CreateEventPage = () => {
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen overflow-y-auto">
       <Navbar />
       
       <main className="pt-24 pb-12 px-4">

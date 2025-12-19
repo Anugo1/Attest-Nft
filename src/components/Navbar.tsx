@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { WalletButton } from './WalletButton';
+import { MultiWalletButton } from './MultiWalletButton';
 import { Hexagon, Calendar, Gift, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -44,7 +44,7 @@ export function Navbar() {
             ))}
           </div>
 
-          <WalletButton />
+          <MultiWalletButton />
         </div>
       </div>
     </nav>
