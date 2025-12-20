@@ -6,6 +6,7 @@ type ApiResponse<T> = { data: T; error: null };
 
 type ApiErrorPayload = {
   error?: string;
+  
 };
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
