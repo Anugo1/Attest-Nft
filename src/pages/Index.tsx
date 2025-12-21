@@ -61,10 +61,10 @@ const Index = () => {
           <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6">
             <span className="text-gradient">On-Chain</span>
             <br />
-            <span className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Attest NFTs</span>
+            <span className="text-foreground">Attest NFTs</span>
           </h1>
           
-          <p className="text-lg sm:text-xl text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-2xl mx-auto mb-12 font-medium">
+          <p className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
             Create unforgettable event experiences with blockchain-verified attendance. 
             Mint unique NFTs for your attendees in seconds.
           </p>
