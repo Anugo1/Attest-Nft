@@ -67,7 +67,7 @@ export function MultiWalletButton() {
       <Button
         onClick={handleConnect}
         disabled={connecting}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 glow"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 glow w-full md:w-auto"
       >
         {connecting ? (
           <Loader2 className="mr-2 h-4 w-4 animate-spin" />

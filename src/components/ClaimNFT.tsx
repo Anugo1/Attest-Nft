@@ -80,9 +80,9 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
   if (claimed) {
     return (
       <GlowCard glowColor="cyan" className="text-center py-8">
-        <CheckCircle2 className="h-16 w-16 mx-auto text-neon-green mb-4" />
-        <h3 className="text-2xl font-bold text-foreground mb-2">NFT Claimed!</h3>
-        <p className="text-muted-foreground">
+        <CheckCircle2 className="h-12 sm:h-16 w-12 sm:w-16 mx-auto text-neon-green mb-4" />
+        <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2">NFT Claimed!</h3>
+        <p className="text-sm sm:text-base text-muted-foreground px-2">
           Your Attest NFT has been minted and sent to your wallet.
         </p>
       </GlowCard>
@@ -92,13 +92,13 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
   if (error) {
     return (
       <GlowCard glowColor="pink" className="text-center py-8">
-        <XCircle className="h-16 w-16 mx-auto text-destructive mb-4" />
-        <h3 className="text-xl font-bold text-foreground mb-2">Claim Failed</h3>
-        <p className="text-muted-foreground mb-4">{error}</p>
+        <XCircle className="h-12 sm:h-16 w-12 sm:w-16 mx-auto text-destructive mb-4" />
+        <h3 className="text-lg sm:text-xl font-bold text-foreground mb-2">Claim Failed</h3>
+        <p className="text-sm sm:text-base text-muted-foreground mb-4 px-2">{error}</p>
         <Button
           onClick={() => setError(null)}
           variant="outline"
-          className="border-primary text-primary hover:bg-primary/10"
+          className="border-primary text-primary hover:bg-primary/10 w-full sm:w-auto"
         >
           Try Again
         </Button>
@@ -108,9 +108,9 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
 
   return (
     <GlowCard className="text-center py-8">
-      <Gift className="h-16 w-16 mx-auto text-primary mb-4 animate-float" />
-      <h3 className="text-2xl font-bold text-foreground mb-2">Claim Your NFT</h3>
-      <p className="text-muted-foreground mb-6">
+      <Gift className="h-12 sm:h-16 w-12 sm:w-16 mx-auto text-primary mb-4 animate-float" />
+      <h3 className="text-xl sm:text-2xl font-bold text-foreground mb-2">Claim Your NFT</h3>
+      <p className="text-sm sm:text-base text-muted-foreground mb-6 px-2">
         {connected
           ? 'Click below to claim your Attendance NFT'
           : 'Connect your wallet to claim your Attendance NFT'}
@@ -119,7 +119,7 @@ export function ClaimNFT({ eventId, eventName, claimCode, onSuccess }: ClaimNFTP
       <Button
         onClick={handleClaim}
         disabled={!connected || claiming}
-        className="bg-primary text-primary-foreground hover:bg-primary/90 glow px-8 py-6 text-lg"
+        className="bg-primary text-primary-foreground hover:bg-primary/90 glow px-6 sm:px-8 py-4 sm:py-6 text-base sm:text-lg w-full sm:w-auto"
       >
         {claiming ? (
           <>

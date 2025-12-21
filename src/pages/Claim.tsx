@@ -78,7 +78,7 @@ const ClaimPage = () => {
 
           {!event && (
             <GlowCard className="mb-8">
-              <form onSubmit={handleSubmit} className="flex gap-4">
+              <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-4">
                 <Input
                   value={claimCode}
                   onChange={(e) => setClaimCode(e.target.value.toUpperCase())}
@@ -89,12 +89,18 @@ const ClaimPage = () => {
                 <Button
                   type="submit"
                   disabled={loading || !claimCode.trim()}
-                  className="bg-primary text-primary-foreground hover:bg-primary/90"
+                  className="bg-primary text-primary-foreground hover:bg-primary/90 sm:w-auto w-full"
                 >
                   {loading ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      <span className="sm:hidden">Searching...</span>
+                    </>
                   ) : (
-                    <Search className="h-4 w-4" />
+                    <>
+                      <Search className="h-4 w-4 mr-2 sm:mr-0" />
+                      <span className="sm:hidden">Search</span>
+                    </>
                   )}
                 </Button>
               </form>
@@ -119,16 +125,16 @@ const ClaimPage = () => {
           {event && (
             <div className="space-y-6">
               <GlowCard>
-                <div className="flex gap-4">
+                <div className="flex flex-col sm:flex-row gap-4">
                   {event.nft_image_url && (
                     <img
                       src={event.nft_image_url}
                       alt={event.name}
-                      className="w-24 h-24 rounded-lg object-cover"
+                      className="w-full sm:w-24 h-48 sm:h-24 rounded-lg object-cover"
                     />
                   )}
-                  <div>
-                    <h2 className="text-2xl font-bold text-gradient">{event.name}</h2>
+                  <div className="flex-1">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gradient">{event.name}</h2>
                     {event.description && (
                       <p className="text-muted-foreground text-sm mt-1">{event.description}</p>
                     )}

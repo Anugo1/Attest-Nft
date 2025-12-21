@@ -38,7 +38,7 @@ const Index = () => {
       <Navbar />
       
       {/* Hero Section with Background Image */}
-      <section className="relative pt-32 pb-20 px-4 min-h-[90vh] flex items-center">
+      <section className="relative pt-24 sm:pt-32 pb-16 sm:pb-20 px-4 min-h-[90vh] flex items-center">
         {/* Background Image */}
         <div 
           className="absolute inset-0 z-0"
@@ -49,7 +49,7 @@ const Index = () => {
             backgroundRepeat: 'no-repeat',
           }}
         >
-          <div className="absolute inset-0 bg-background/70 backdrop-blur-sm" />
+          <div className="absolute inset-0 bg-gradient-to-b from-background/85 via-background/80 to-background/85 backdrop-blur-md" />
         </div>
         
         <div className="container mx-auto text-center relative z-10">
@@ -58,26 +58,26 @@ const Index = () => {
             <span className="text-sm text-primary font-medium">Powered by Solana & Metaplex</span>
           </div>
           
-          <h1 className="text-5xl md:text-7xl font-bold mb-6">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold mb-6">
             <span className="text-gradient">On-Chain</span>
             <br />
-            <span className="text-foreground">Attest NFTs</span>
+            <span className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.8)]">Attest NFTs</span>
           </h1>
           
-          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-12">
+          <p className="text-lg sm:text-xl text-white/90 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] max-w-2xl mx-auto mb-12 font-medium">
             Create unforgettable event experiences with blockchain-verified attendance. 
             Mint unique NFTs for your attendees in seconds.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link to="/events/create">
-              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90 glow-lg px-8 py-6 text-lg">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <Link to="/events/create" className="w-full sm:w-auto">
+              <Button size="lg" className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-primary/90 glow-lg px-8 py-6 text-lg">
                 <Calendar className="mr-2 h-5 w-5" />
                 Create Event
               </Button>
             </Link>
-            <Link to="/events">
-              <Button size="lg" variant="outline" className="border-primary/50 text-primary hover:bg-primary/10 px-8 py-6 text-lg">
+            <Link to="/events" className="w-full sm:w-auto">
+              <Button size="lg" variant="outline" className="w-full sm:w-auto border-primary/50 text-primary hover:bg-primary/10 px-8 py-6 text-lg">
                 <Gift className="mr-2 h-5 w-5" />
                 Claim NFT
               </Button>

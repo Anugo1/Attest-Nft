@@ -1,10 +1,14 @@
 import { Link, useLocation } from 'react-router-dom';
 import { MultiWalletButton } from './MultiWalletButton';
-import { Hexagon, Calendar, Gift, Home } from 'lucide-react';
+import { Hexagon, Calendar, Gift, Home, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState } from 'react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Button } from '@/components/ui/button';
 
 export function Navbar() {
   const location = useLocation();
+  const [open, setOpen] = useState(false);
   
   const links = [
     { href: '/', label: 'Home', icon: Home },
@@ -44,7 +48,42 @@ export function Navbar() {
             ))}
           </div>
 
-          <MultiWalletButton />
+          <div className="flex items-center gap-2">
+            <div className="hidden md:block">
+              <MultiWalletButton />
+            </div>
+            
+            <Sheet open={open} onOpenChange={setOpen}>
+              <SheetTrigger asChild className="md:hidden">
+                <Button variant="ghost" size="icon" className="text-foreground">
+                  <Menu className="h-6 w-6" />
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="right" className="w-[300px] sm:w-[400px] glass">
+                <nav className="flex flex-col gap-4 mt-8">
+                  {links.map(({ href, label, icon: Icon }) => (
+                    <Link
+                      key={href}
+                      to={href}
+                      onClick={() => setOpen(false)}
+                      className={cn(
+                        "flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-300 text-lg",
+                        location.pathname === href
+                          ? "bg-primary/20 text-primary neon-border"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      <Icon className="h-5 w-5" />
+                      {label}
+                    </Link>
+                  ))}
+                  <div className="mt-4 px-4">
+                    <MultiWalletButton />
+                  </div>
+                </nav>
+              </SheetContent>
+            </Sheet>
+          </div>
         </div>
       </div>
     </nav>

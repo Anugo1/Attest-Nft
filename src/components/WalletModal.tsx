@@ -1,7 +1,9 @@
 import { useWallet } from '@solana/wallet-adapter-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Wallet } from 'lucide-react';
+import { Wallet, Loader2 } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface WalletModalProps {
   open: boolean;
@@ -9,11 +11,22 @@ interface WalletModalProps {
 }
 
 export function WalletModal({ open, onOpenChange }: WalletModalProps) {
-  const { wallets, select } = useWallet();
+  const { wallets, select, connect } = useWallet();
+  const [connecting, setConnecting] = useState(false);
 
-  const handleWalletSelect = (wallet: typeof wallets[number]) => {
-    select(wallet.adapter.name);
-    onOpenChange(false);
+  const handleWalletSelect = async (wallet: typeof wallets[number]) => {
+    try {
+      setConnecting(true);
+      select(wallet.adapter.name);
+      await connect();
+      onOpenChange(false);
+      toast.success('Wallet connected successfully!');
+    } catch (error: any) {
+      console.error('Failed to connect wallet:', error);
+      toast.error(error?.message || 'Failed to connect wallet. Please try again.');
+    } finally {
+      setConnecting(false);
+    }
   };
 
   // Filter to only Solana wallets and remove duplicates
@@ -47,15 +60,18 @@ export function WalletModal({ open, onOpenChange }: WalletModalProps) {
                 key={`${wallet.adapter.name}-${index}`}
                 onClick={() => handleWalletSelect(wallet)}
                 variant="outline"
+                disabled={connecting}
                 className="w-full justify-start gap-3 h-14 text-base hover:bg-primary/10 hover:border-primary/50"
               >
-                {wallet.adapter.icon && (
+                {connecting ? (
+                  <Loader2 className="h-8 w-8 animate-spin" />
+                ) : wallet.adapter.icon ? (
                   <img
                     src={wallet.adapter.icon}
                     alt={wallet.adapter.name}
                     className="h-8 w-8"
                   />
-                )}
+                ) : null}
                 <span>{wallet.adapter.name}</span>
               </Button>
             ))
